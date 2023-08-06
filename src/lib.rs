@@ -1,5 +1,49 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
+//! The project fetches oauth certificates from providers during build time and stores them as lazy structures for retrieval.
+
+#![deny(
+    warnings,
+    bad_style,
+    dead_code,
+    improper_ctypes,
+    non_shorthand_field_patterns,
+    no_mangle_generic_items,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true,
+    missing_debug_implementations,
+    missing_docs,
+    trivial_casts,
+    trivial_numeric_casts,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_qualifications,
+    unused_results,
+    trivial_numeric_casts,
+    unreachable_pub,
+    unused_extern_crates,
+    unused_import_braces,
+    unused_qualifications,
+    unused_results,
+    deprecated,
+    unconditional_recursion,
+    unknown_lints,
+    unreachable_code,
+    unused_mut
+)]
+
+/// Google certificates
+pub mod google {
+    use jsonwebtoken::jwk::JwkSet;
+    use once_cell::sync::Lazy;
+
+    include!(concat!(env!("OUT_DIR"), "/google-certs.rs"));
 }
 
 #[cfg(test)]
@@ -7,8 +51,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
+    fn test_google_oauth_certs() {
+        assert!(google::OAUTH_CERTS
+            .find("911e39e27928ae9f1e9d1e21646de92d19351b44")
+            .is_some());
     }
 }
