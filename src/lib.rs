@@ -43,7 +43,16 @@ pub mod google {
     use jsonwebtoken::jwk::JwkSet;
     use once_cell::sync::Lazy;
 
-    include!(concat!(env!("OUT_DIR"), "/google-certs.rs"));
+    fn retrieve() -> Result<JwkSet, reqwest::Error> {
+        reqwest::blocking::Client::new()
+            .get("https://www.googleapis.com/oauth2/v3/certs")
+            .send()?
+            .json()
+    }
+
+    /// Google oauth certificates"
+    pub static OAUTH_CERTS: Lazy<JwkSet> =
+        Lazy::new(|| retrieve().expect("Failed to retrieve Google OAuth certificates"));
 }
 
 #[cfg(test)]
@@ -52,8 +61,6 @@ mod tests {
 
     #[test]
     fn test_google_oauth_certs() {
-        assert!(google::OAUTH_CERTS
-            .find("911e39e27928ae9f1e9d1e21646de92d19351b44")
-            .is_some());
+        assert!(!google::OAUTH_CERTS.keys.is_empty());
     }
 }

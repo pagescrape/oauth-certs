@@ -1,8 +1,7 @@
 [package]
 name = "oauth-certs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
-build = "build.rs"
 description = """
 The project fetches oauth certificates from providers during build time and stores them as lazy structures for retrieval.
 """
@@ -18,16 +17,7 @@ jsonwebtoken = { version = "8", default-features = false }
 serde_json = "1"
 once_cell = "1"
 
-[build-dependencies]
-serde_json = "1"
-jsonwebtoken = { version = "8", default-features = false }
-
-[build-dependencies.tokio]
-version = "1"
+[dependencies.reqwest]
+version = "0.11"
 default-features = false
-features = ["rt-multi-thread", "macros"]
-
-[build-dependencies.reqwest]
-version = "0.11.18"
-default-features = false
-features = ["rustls-tls", "gzip", "json"]
+features = ["rustls-tls", "gzip", "json", "blocking"]
