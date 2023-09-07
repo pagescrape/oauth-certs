@@ -1,6 +1,6 @@
 [package]
 name = "oauth-certs"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = """
 The project fetches oauth certificates from providers during build time and stores them as lazy structures for retrieval.
