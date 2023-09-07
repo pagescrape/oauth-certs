@@ -3,7 +3,7 @@ name = "oauth-certs"
 version = "0.3.0"
 edition = "2021"
 description = """
-The project fetches oauth certificates from providers during build time and stores them as lazy structures for retrieval.
+The project fetches oauth certificates from providers during runtime and stores them in static Read / Write lock.
 """
 documentation = "https://docs.rs/oauth-certs"
 homepage = "https://github.com/pagescrape/oauth-certs"
