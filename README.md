@@ -24,10 +24,15 @@ pub struct ClaimsGoogle {
 }
 
 /// decode JWT token into Claims
-pub fn decode(token: &str) -> Result<ClaimsGoogle> {
+pub async fn decode(token: &str) -> Result<ClaimsGoogle> {
     let header = jsonwebtoken::decode_header(token)?;
 
-    let jwt_key = (&oauth_certs::google::OAUTH_CERTS)
+    let certs = oauth_certs::google::oauth2_v3_certs().await.map_err(|e| {
+        // tracing::error!("Failed to get google oauth certs: {}", e);
+        jsonwebtoken::errors::ErrorKind::RsaFailedSigning
+    })?;
+
+    let jwt_key = (certs)
         .keys
         .iter()
         .find(|cert| cert.common.key_id == header.kid)

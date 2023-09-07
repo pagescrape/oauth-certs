@@ -38,29 +38,54 @@
     unused_mut
 )]
 
+use jsonwebtoken::jwk::JwkSet;
+
+struct Certs {
+    value: Option<JwkSet>,
+}
+
+impl Certs {}
+
 /// Google certificates
 pub mod google {
-    use jsonwebtoken::jwk::JwkSet;
-    use once_cell::sync::Lazy;
+    use tokio::sync::RwLock;
 
-    fn retrieve() -> Result<JwkSet, reqwest::Error> {
-        reqwest::blocking::Client::new()
-            .get("https://www.googleapis.com/oauth2/v3/certs")
-            .send()?
+    use jsonwebtoken::jwk::JwkSet;
+
+    use crate::Certs;
+
+    async fn retrieve() -> Result<JwkSet, reqwest::Error> {
+        reqwest::get("https://www.googleapis.com/oauth2/v3/certs")
+            .await?
             .json()
+            .await
     }
 
     /// Google oauth certificates"
-    pub static OAUTH_CERTS: Lazy<JwkSet> =
-        Lazy::new(|| retrieve().expect("Failed to retrieve Google OAuth certificates"));
+    static OAUTH_CERTS: RwLock<Certs> = RwLock::const_new(Certs { value: None });
+
+    /// Get JwkSet of Google oauth certificates
+    pub async fn oauth2_v3_certs() -> Result<JwkSet, reqwest::Error> {
+        {
+            if let Some(ref certs) = OAUTH_CERTS.read().await.value {
+                return Ok(certs.clone());
+            }
+        }
+
+        let certs = retrieve().await?;
+        {
+            OAUTH_CERTS.write().await.value = Some(certs.clone());
+        }
+        Ok(certs)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_google_oauth_certs() {
-        assert!(!google::OAUTH_CERTS.keys.is_empty());
+    #[tokio::test]
+    async fn test_google_oauth_certs() {
+        assert!(google::oauth2_v3_certs().await.is_ok());
     }
 }

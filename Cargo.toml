@@ -20,4 +20,9 @@ once_cell = "1"
 [dependencies.reqwest]
 version = "0.11"
 default-features = false
-features = ["rustls-tls", "gzip", "json", "blocking"]
+features = ["rustls-tls", "gzip", "json"]
+
+[dependencies.tokio]
+version = "1"
+default-features = false
+features = ["sync", "macros"]
