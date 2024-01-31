@@ -38,43 +38,92 @@
 )]
 
 use jsonwebtoken::jwk::JwkSet;
+use std::time::Duration;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 struct Certs {
     value: Option<JwkSet>,
+    expires_in: Option<Duration>,
 }
 
 impl Certs {}
 
+fn time_now() -> Duration {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+}
+
+fn is_expired(expires_in: Duration) -> bool {
+    time_now() > expires_in
+}
+
 /// Google certificates
 pub mod google {
+    use super::*;
+    use cache_control::CacheControl;
     use tokio::sync::RwLock;
-
-    use jsonwebtoken::jwk::JwkSet;
 
     use crate::Certs;
 
-    async fn retrieve() -> Result<JwkSet, reqwest::Error> {
-        reqwest::get("https://www.googleapis.com/oauth2/v3/certs")
-            .await?
-            .json()
-            .await
+    async fn retrieve() -> Result<(JwkSet, Option<Duration>), reqwest::Error> {
+        let response = reqwest::get("https://www.googleapis.com/oauth2/v3/certs").await?;
+
+        let max_age = response
+            .headers()
+            .get("Cache-Control")
+            .map(|value| value.to_str().ok())
+            .flatten()
+            .map(|value| CacheControl::from_value(value))
+            .flatten()
+            .map(|value| value.max_age)
+            .flatten();
+
+        let jwk_set = response.json().await?;
+        Ok((jwk_set, max_age))
+    }
+
+    /// Reset Google oauth certificates
+    pub async fn reset_oauth2_v3_certs() -> Result<(), reqwest::Error> {
+        {
+            OAUTH_CERTS.write().await.value = None;
+        }
+        Ok(())
     }
 
     /// Google oauth certificates"
-    static OAUTH_CERTS: RwLock<Certs> = RwLock::const_new(Certs { value: None });
+    static OAUTH_CERTS: RwLock<Certs> = RwLock::const_new(Certs {
+        value: None,
+        expires_in: None,
+    });
 
     /// Get JwkSet of Google oauth certificates
     pub async fn oauth2_v3_certs() -> Result<JwkSet, reqwest::Error> {
         {
-            if let Some(ref certs) = OAUTH_CERTS.read().await.value {
-                return Ok(certs.clone());
+            let oauth_certs = OAUTH_CERTS.read().await;
+
+            if let Some(ref certs) = oauth_certs.value {
+                let is_expired = oauth_certs
+                    .expires_in
+                    .map(|expires_in| is_expired(expires_in))
+                    .unwrap_or(false);
+
+                if !is_expired {
+                    return Ok(certs.clone());
+                }
             }
         }
 
-        let certs = retrieve().await?;
+        let (certs, max_age) = retrieve().await?;
+        let expires_in = time_now() + max_age.unwrap_or(Duration::from_secs(1800));
+
+        // Drop lock ASAP
         {
-            OAUTH_CERTS.write().await.value = Some(certs.clone());
+            let mut v = OAUTH_CERTS.write().await;
+            v.value = Some(certs.clone());
+            v.expires_in = Some(expires_in)
         }
+
         Ok(certs)
     }
 }
