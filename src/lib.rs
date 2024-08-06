@@ -103,12 +103,7 @@ pub mod google {
             let oauth_certs = OAUTH_CERTS.read().await;
 
             if let Some(ref certs) = oauth_certs.value {
-                let is_expired = oauth_certs
-                    .expires_in
-                    .map(|expires_in| is_expired(expires_in))
-                    .unwrap_or(false);
-
-                if !is_expired {
+                if !oauth_certs.expires_in.map(is_expired).unwrap_or(false) {
                     return Ok(certs.clone());
                 }
             }
