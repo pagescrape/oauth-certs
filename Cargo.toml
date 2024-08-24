@@ -26,4 +26,9 @@ features = ["rustls-tls", "gzip", "json"]
 [dependencies.tokio]
 version = "1"
 default-features = false
+features = ["sync"]
+
+[dev-dependencies.tokio]
+version = "1"
+default-features = false
 features = ["sync", "macros"]

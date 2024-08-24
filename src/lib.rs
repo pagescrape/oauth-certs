@@ -41,13 +41,6 @@ use jsonwebtoken::jwk::JwkSet;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-struct Certs {
-    value: Option<JwkSet>,
-    expires_in: Option<Duration>,
-}
-
-impl Certs {}
-
 fn time_now() -> Duration {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -64,7 +57,12 @@ pub mod google {
     use cache_control::CacheControl;
     use tokio::sync::RwLock;
 
-    use crate::Certs;
+    struct Certs {
+        value: Option<JwkSet>,
+        expires_in: Option<Duration>,
+    }
+
+    impl Certs {}
 
     async fn retrieve() -> Result<(JwkSet, Option<Duration>), reqwest::Error> {
         let response = reqwest::get("https://www.googleapis.com/oauth2/v3/certs").await?;
